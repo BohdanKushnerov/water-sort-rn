@@ -1,6 +1,13 @@
 import { TubeCoordinates } from "@/screens/GameScreen/GameScreen";
 import React, { useRef, useEffect, FC, forwardRef, useState } from "react";
-import { Pressable, Animated, StyleSheet } from "react-native";
+import {
+  Pressable,
+  Animated,
+  StyleSheet,
+  View,
+  LayoutChangeEvent,
+} from "react-native";
+import PaintCoat from "../PaintCoat/PaintCoat";
 
 interface TestTubeProps {
   colors: string[];
@@ -11,7 +18,7 @@ interface TestTubeProps {
   selectedTubeCoordinates: TubeCoordinates | null;
 }
 
-const TestTube: FC<TestTubeProps> = forwardRef(
+const TestTube = forwardRef<View, TestTubeProps>(
   (
     {
       colors,
@@ -20,28 +27,17 @@ const TestTube: FC<TestTubeProps> = forwardRef(
       pouringFromTube,
       pouringToTube,
       selectedTubeCoordinates,
-    }: TestTubeProps,
+    },
     ref
   ) => {
+    const [isVisible, setIsVisible] = useState(true);
     const [tubeCoordinates, setTubeCoordinates] = useState({ x: 0, y: 0 });
 
+    const translateX = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(0)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
     const borderAnim = useRef(new Animated.Value(0)).current;
-    const liquidPosition = useRef(new Animated.Value(0)).current;
-    const pouringToAnim = useRef(new Animated.Value(-30)).current;
-
-    // Анімація для переміщення пробірки
-    const translateX = useRef(new Animated.Value(0)).current; // Анімація для переміщення по осі X
-    const translateY = useRef(new Animated.Value(0)).current; // Анімація для переміщення по осі Y
-
-    const onLayout = (event) => {
-      console.log("event.nativeEvent.layout", event.nativeEvent.layout);
-      const { x, y } = event.nativeEvent.layout;
-      setTubeCoordinates({ x, y });
-    };
-
-    console.log("tubeCoordinates", tubeCoordinates);
-    // console.log("translateX", translateX);
-    // console.log("translateY", translateY);
+    const startAnimationTranslateTube = useRef(false);
 
     useEffect(() => {
       Animated.timing(borderAnim, {
@@ -52,79 +48,137 @@ const TestTube: FC<TestTubeProps> = forwardRef(
     }, [isSelected]);
 
     useEffect(() => {
-      if (pouringFromTube) {
-        // Піднімання рідини перед переливанням
-        Animated.sequence([
-          Animated.timing(liquidPosition, {
-            toValue: -20,
-            duration: 300,
-            useNativeDriver: false,
+      if (pouringFromTube && selectedTubeCoordinates) {
+        console.log("goooooooooooooooooooooooo");
+        startAnimationTranslateTube.current = true;
+        setIsVisible(false);
+        // Анимация перемещения вперед
+        Animated.parallel([
+          Animated.timing(translateX, {
+            toValue: selectedTubeCoordinates.pageX - tubeCoordinates.x - 60,
+            duration: 500,
+            useNativeDriver: true,
           }),
-          Animated.timing(liquidPosition, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: false,
+          Animated.timing(translateY, {
+            toValue: selectedTubeCoordinates.pageY - tubeCoordinates.y - 105,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
           }),
         ]).start();
       }
-    }, [pouringFromTube]);
+    }, [pouringFromTube, selectedTubeCoordinates]);
 
     useEffect(() => {
-      if (pouringToTube && selectedTubeCoordinates) {
-        // Анімуємо переміщення пробірки до нової позиції
-        Animated.timing(translateX, {
-          toValue: selectedTubeCoordinates.pageX, // Переміщуємо по осі X
-          duration: 5000,
-          useNativeDriver: true, // Використовуємо рідний драйвер для швидкої анімації
-        }).start();
-
-        Animated.timing(translateY, {
-          toValue: selectedTubeCoordinates.pageY, // Переміщуємо по осі Y
-          duration: 5000,
-          useNativeDriver: true,
-        }).start();
+      if (
+        !pouringFromTube &&
+        !selectedTubeCoordinates &&
+        startAnimationTranslateTube.current
+      ) {
+        console.log("backkkkkkkkkk");
+        Animated.parallel([
+          Animated.timing(translateX, {
+            toValue: 0, // Возвращаем на начальную позицию по оси X
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: 0, // Возвращаем на начальную позицию по оси Y
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 0, // Возвращаем на начальную ориентацию
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setIsVisible(true); // Показали пробирку по окончании анимации
+          startAnimationTranslateTube.current = false;
+        });
       }
-    }, [pouringToTube, selectedTubeCoordinates]);
+    }, [pouringFromTube, selectedTubeCoordinates]);
 
     const borderColor = borderAnim.interpolate({
       inputRange: [0, 1],
       outputRange: ["black", "gold"],
     });
 
+    const rotateInterpolate = rotateAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "45deg"],
+    });
+
+    const onLayout = (event: LayoutChangeEvent) => {
+      const { x, y } = event.nativeEvent.layout;
+      setTubeCoordinates({ x, y });
+    };
+
     return (
-      <Pressable onPress={onPress} onLayout={onLayout}>
-        <Animated.View
-          ref={ref} // Застосовуємо реф до Animated.View
+      <>
+        {/* Основна (фантомна) пробірка */}
+        <Pressable
+          ref={ref}
           onPress={onPress}
+          onLayout={onLayout}
+          style={{ zIndex: 10 }}
+        >
+          <Animated.View
+            style={[
+              styles.tube,
+              { borderColor, opacity: isVisible ? 1 : 0 }, // Ховаємо лише візуально
+              // { borderColor, opacity: pouringFromTube ? 1 : 1 }, // Ховаємо лише візуально
+            ]}
+          >
+            {colors.map((color, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.liquid,
+                  { backgroundColor: color, bottom: index * 25 },
+                ]}
+              />
+            ))}
+          </Animated.View>
+        </Pressable>
+
+        {/* Переміщувана пробірка (поверх основної) */}
+        <Animated.View
+          // ref={ref}
           style={[
             styles.tube,
-            { borderColor },
-            pouringToTube && selectedTubeCoordinates
-              ? {
-                  // Тепер позиціонуємо елемент з новими координатами
-                  position: "absolute",
-                  transform: [{ translateX }, { translateY }],
-                }
-              : {},
+            {
+              position: "absolute",
+              // zIndex: pouringFromTube ? 10 : -10, // Підняв zIndex
+              zIndex: isVisible ? 0 : 20,
+              // opacity: pouringFromTube ? 1 : 0,
+              opacity: pouringFromTube ? 1 : 1,
+              left: tubeCoordinates.x,
+              top: tubeCoordinates.y,
+              transform: [
+                { translateX },
+                { translateY },
+                { rotate: rotateInterpolate },
+              ],
+            },
           ]}
         >
           {colors.map((color, index) => (
+            // <PaintCoat key={index} color={color} index={index} />
             <Animated.View
               key={index}
               style={[
                 styles.liquid,
                 { backgroundColor: color, bottom: index * 25 },
-                pouringFromTube && index === colors.length - 1
-                  ? { transform: [{ translateY: liquidPosition }] }
-                  : {},
-                pouringToTube && index === colors.length - 1
-                  ? { transform: [{ translateY: pouringToAnim }] }
-                  : {},
               ]}
             />
           ))}
         </Animated.View>
-      </Pressable>
+      </>
     );
   }
 );
@@ -142,8 +196,8 @@ const styles = StyleSheet.create({
   },
   liquid: {
     position: "absolute",
-    left: 2,
-    width: 56,
+    left: 1,
+    width: 52,
     height: 25,
   },
 });

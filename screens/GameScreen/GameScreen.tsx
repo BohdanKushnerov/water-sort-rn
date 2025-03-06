@@ -3,6 +3,9 @@ import { Button, StyleSheet, View, Text, Alert } from "react-native";
 import TestTube from "@/components/TestTube/TestTube";
 import { levels } from "@/constants/constants";
 import LevelCompletionModal from "@/components/LevelCompletionModal/LevelCompletionModal";
+import { getTubeCoordinates } from "./utils/getTubeCoordinates";
+import { getAmountToMove } from "./utils/getAmountToMove";
+import { canPourLiquid } from "./utils/canPourLiquid";
 
 export interface TubeCoordinates {
   x: number;
@@ -23,14 +26,9 @@ const GameScreen = () => {
   const [selectedTubeCoordinates, setSelectedTubeCoordinates] =
     useState<TubeCoordinates | null>(null);
 
-  const tubeRefs = useRef<Array<any>>([]);
+  const tubeRefs = useRef<(View | null)[]>([]);
 
-  // console.log("selectedTubeCoordinates", selectedTubeCoordinates);
-
-  // console.log("pouringFromTube", pouringFromTube);
-  // console.log("pouringToTube", pouringToTube);
-
-  const pourLiquid = (from: number, to: number) => {
+  const pourLiquid = (from: number, to: number, amountToMove: number) => {
     if (from === to || tubes[from].length === 0 || tubes[to].length === 6)
       return;
 
@@ -38,27 +36,9 @@ const GameScreen = () => {
     const fromTube = newTubes[from];
     const toTube = newTubes[to];
 
-    const movingLiquid = fromTube[fromTube.length - 1]; // Цвет, который будем переливать
-    let amountToMove = 0;
-
-    // Определяем, сколько одинаковых сверху слоев можно перелить
-    for (let i = fromTube.length - 1; i >= 0; i--) {
-      if (fromTube[i] === movingLiquid) {
-        amountToMove++;
-      } else {
-        break;
-      }
-    }
-
-    // Проверяем, можно ли вылить все amountToMove слоев
-    if (
-      toTube.length + amountToMove <= 6 && // Проверяем, что не переполняем пробирку
-      (toTube.length === 0 || toTube[toTube.length - 1] === movingLiquid) // Совпадение цветов
-    ) {
-      // Переливаем
-      for (let i = 0; i < amountToMove; i++) {
-        toTube.push(fromTube.pop()!);
-      }
+    // Переливаем жидкость
+    for (let i = 0; i < amountToMove; i++) {
+      toTube.push(fromTube.pop()!);
     }
 
     setTubes(newTubes);
@@ -67,60 +47,57 @@ const GameScreen = () => {
   const handleTubePress = (index: number) => {
     if (currentTube === null) {
       setCurrentTube(index);
-    } else {
-      if (currentTube !== index) {
-        setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
-        setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
-
-        setTimeout(() => {
-          pourLiquid(currentTube, index);
-          setPouringFromTube(null); // Сбрасываем анимацию после переливания
-          setPouringToTube(null); // Сбрасываем анимацию после переливания
-        }, 600); // Даем время на анимацию
-      }
-
-      setCurrentTube(null);
+      return;
     }
 
-    // Получаем координаты при нажатии с помощью метода measure
-    if (tubeRefs.current[index]) {
-      tubeRefs.current[index].measure(
-        (
-          x: number,
-          y: number,
-          width: number,
-          height: number,
-          pageX: number,
-          pageY: number
-        ) => {
-          setSelectedTubeCoordinates({ x, y, width, height, pageX, pageY });
-        }
-      );
-    }
-  };
+    const newTubes = [...tubes];
+    const fromTube = newTubes[currentTube];
+    const toTube = newTubes[index];
 
-  const checkLevelCompletion = (newTubes: string[][]) => {
-    // console.log(111, "checkLevelCompletion");
-    // Проверяем, завершен ли уровень (все пробирки заполнены правильными цветами)
-    const isLevelComplete = newTubes.every((tube) => {
-      return (
-        tube.length === 0 || // Пустые пробирки игнорируем
-        (tube.length > 1 && tube.every((color) => color === tube[0])) // Все цвета одинаковые и их больше 1
-      );
-    });
+    const amountToMove = getAmountToMove(fromTube);
 
-    if (isLevelComplete) {
+    if (
+      currentTube !== index &&
+      canPourLiquid(fromTube, toTube, amountToMove)
+    ) {
+      // Получаем координаты при нажатии
+      getTubeCoordinates(index, tubeRefs, setSelectedTubeCoordinates);
+
+      setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
+      setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
+
       setTimeout(() => {
-        if (level < levels.length - 1) {
-          setShowModal(true);
-        } else {
-          Alert.alert("Поздравляем! Вы прошли все уровни!");
-        }
-      }, 2000); // Добавляем задержку, чтобы игрок видел последний перелив
+        pourLiquid(currentTube, index, amountToMove);
+        setPouringFromTube(null); // Сбрасываем анимацию после переливания
+        setPouringToTube(null); // Сбрасываем анимацию после переливания
+        setSelectedTubeCoordinates(null);
+      }, 1000); // Даем время на анимацию
     }
+
+    setCurrentTube(null);
   };
 
   useEffect(() => {
+    const checkLevelCompletion = (newTubes: string[][]) => {
+      // Проверяем, завершен ли уровень (все пробирки заполнены правильными цветами)
+      const isLevelComplete = newTubes.every((tube) => {
+        return (
+          tube.length === 0 || // Пустые пробирки игнорируем
+          (tube.length > 1 && tube.every((color) => color === tube[0])) // Все цвета одинаковые и их больше 1
+        );
+      });
+
+      if (isLevelComplete) {
+        setTimeout(() => {
+          if (level < levels.length - 1) {
+            setShowModal(true);
+          } else {
+            Alert.alert("Поздравляем! Вы прошли все уровни!");
+          }
+        }, 300); // Добавляем задержку, чтобы игрок видел последний перелив
+      }
+    };
+
     checkLevelCompletion(tubes);
   }, [tubes]);
 
@@ -160,19 +137,22 @@ const GameScreen = () => {
         ))}
       </View>
       <Button title="Reset" onPress={resetGame} />
-      {selectedTubeCoordinates && (
+      {/* {selectedTubeCoordinates ? (
         <Text>
           Координаты выбранной пробирки: x={selectedTubeCoordinates.x}, y=
           {selectedTubeCoordinates.y}, width={selectedTubeCoordinates.width},
           height={selectedTubeCoordinates.height}
         </Text>
-      )}
+      ) : (
+        <Text>Координаты выбранной пробирки пока нету</Text>
+      )} */}
     </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    position: "relative",
     flex: 1,
     flexDirection: "row",
     flexWrap: "wrap",
