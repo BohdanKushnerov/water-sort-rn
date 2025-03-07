@@ -17,6 +17,7 @@ export interface TubeCoordinates {
 }
 
 const GameScreen = () => {
+  console.log("game screen =====");
   const [level, setLevel] = useState(0);
   const [tubes, setTubes] = useState(levels[level]);
   const [currentTube, setCurrentTube] = useState<number | null>(null);
@@ -25,10 +26,16 @@ const GameScreen = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedTubeCoordinates, setSelectedTubeCoordinates] =
     useState<TubeCoordinates | null>(null);
+  const [pouringColor, setPouringColor] = useState<string | null>(null);
 
   const tubeRefs = useRef<(View | null)[]>([]);
 
-  const pourLiquid = (from: number, to: number, amountToMove: number) => {
+  const pourLiquid = (
+    from: number,
+    to: number,
+    amountToMove: number,
+    tubes: string[][]
+  ) => {
     if (from === to || tubes[from].length === 0 || tubes[to].length === 6)
       return;
 
@@ -38,7 +45,9 @@ const GameScreen = () => {
 
     // Переливаем жидкость
     for (let i = 0; i < amountToMove; i++) {
-      toTube.push(fromTube.pop()!);
+      const currentPouringColor = fromTube.pop()!;
+
+      toTube.push(currentPouringColor);
     }
 
     setTubes(newTubes);
@@ -66,8 +75,11 @@ const GameScreen = () => {
       setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
       setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
 
+      const currentPouringColor = tubes[currentTube].findLast((el) => el);
+      setPouringColor(currentPouringColor ?? "transparent");
+
       setTimeout(() => {
-        pourLiquid(currentTube, index, amountToMove);
+        pourLiquid(currentTube, index, amountToMove, tubes);
         setPouringFromTube(null); // Сбрасываем анимацию после переливания
         setPouringToTube(null); // Сбрасываем анимацию после переливания
         setSelectedTubeCoordinates(null);
@@ -125,6 +137,7 @@ const GameScreen = () => {
       <View style={styles.container}>
         {tubes.map((colors, index) => (
           <TestTube
+            indexOfTube={index}
             key={index}
             colors={colors}
             ref={(el) => (tubeRefs.current[index] = el)}
@@ -133,19 +146,11 @@ const GameScreen = () => {
             pouringFromTube={pouringFromTube === index}
             pouringToTube={pouringToTube === index}
             selectedTubeCoordinates={selectedTubeCoordinates}
+            pouringColor={pouringColor}
           />
         ))}
       </View>
       <Button title="Reset" onPress={resetGame} />
-      {/* {selectedTubeCoordinates ? (
-        <Text>
-          Координаты выбранной пробирки: x={selectedTubeCoordinates.x}, y=
-          {selectedTubeCoordinates.y}, width={selectedTubeCoordinates.width},
-          height={selectedTubeCoordinates.height}
-        </Text>
-      ) : (
-        <Text>Координаты выбранной пробирки пока нету</Text>
-      )} */}
     </>
   );
 };

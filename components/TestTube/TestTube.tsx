@@ -8,25 +8,30 @@ import {
   LayoutChangeEvent,
 } from "react-native";
 import PaintCoat from "../PaintCoat/PaintCoat";
+import ActivePouringLiquid from "../ActivePouringLiquid/ActivePouringLiquid";
 
 interface TestTubeProps {
+  indexOfTube: number;
   colors: string[];
   onPress: () => void;
   isSelected: boolean;
   pouringFromTube: boolean;
   pouringToTube: boolean;
   selectedTubeCoordinates: TubeCoordinates | null;
+  pouringColor: string | null;
 }
 
 const TestTube = forwardRef<View, TestTubeProps>(
   (
     {
+      indexOfTube,
       colors,
       onPress,
       isSelected,
       pouringFromTube,
       pouringToTube,
       selectedTubeCoordinates,
+      pouringColor,
     },
     ref
   ) => {
@@ -37,6 +42,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
     const translateY = useRef(new Animated.Value(0)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const borderAnim = useRef(new Animated.Value(0)).current;
+
     const startAnimationTranslateTube = useRef(false);
 
     useEffect(() => {
@@ -49,9 +55,9 @@ const TestTube = forwardRef<View, TestTubeProps>(
 
     useEffect(() => {
       if (pouringFromTube && selectedTubeCoordinates) {
-        console.log("goooooooooooooooooooooooo");
         startAnimationTranslateTube.current = true;
         setIsVisible(false);
+
         // Анимация перемещения вперед
         Animated.parallel([
           Animated.timing(translateX, {
@@ -82,17 +88,17 @@ const TestTube = forwardRef<View, TestTubeProps>(
         console.log("backkkkkkkkkk");
         Animated.parallel([
           Animated.timing(translateX, {
-            toValue: 0, // Возвращаем на начальную позицию по оси X
+            toValue: 0, 
             duration: 500,
             useNativeDriver: true,
           }),
           Animated.timing(translateY, {
-            toValue: 0, // Возвращаем на начальную позицию по оси Y
+            toValue: 0,
             duration: 500,
             useNativeDriver: true,
           }),
           Animated.timing(rotateAnim, {
-            toValue: 0, // Возвращаем на начальную ориентацию
+            toValue: 0,
             duration: 500,
             useNativeDriver: true,
           }),
@@ -120,7 +126,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
 
     return (
       <>
-        {/* Основна (фантомна) пробірка */}
+        {/* Основная (фантомная) пробирка */}
         <Pressable
           ref={ref}
           onPress={onPress}
@@ -131,7 +137,6 @@ const TestTube = forwardRef<View, TestTubeProps>(
             style={[
               styles.tube,
               { borderColor, opacity: isVisible ? 1 : 0 }, // Ховаємо лише візуально
-              // { borderColor, opacity: pouringFromTube ? 1 : 1 }, // Ховаємо лише візуально
             ]}
           >
             {colors.map((color, index) => (
@@ -146,17 +151,14 @@ const TestTube = forwardRef<View, TestTubeProps>(
           </Animated.View>
         </Pressable>
 
-        {/* Переміщувана пробірка (поверх основної) */}
+        {/* Анимированная пробірка (поверх основной) */}
+
         <Animated.View
-          // ref={ref}
           style={[
             styles.tube,
             {
               position: "absolute",
-              // zIndex: pouringFromTube ? 10 : -10, // Підняв zIndex
               zIndex: isVisible ? 0 : 20,
-              // opacity: pouringFromTube ? 1 : 0,
-              opacity: pouringFromTube ? 1 : 1,
               left: tubeCoordinates.x,
               top: tubeCoordinates.y,
               transform: [
@@ -167,16 +169,23 @@ const TestTube = forwardRef<View, TestTubeProps>(
             },
           ]}
         >
-          {colors.map((color, index) => (
-            // <PaintCoat key={index} color={color} index={index} />
-            <Animated.View
-              key={index}
-              style={[
-                styles.liquid,
-                { backgroundColor: color, bottom: index * 25 },
-              ]}
+          <View style={[styles.innerAnimatedTubeWrap]}>
+            <ActivePouringLiquid
+              pouringFromTube={pouringFromTube}
+              selectedTubeCoordinates={selectedTubeCoordinates}
+              pouringColor={pouringColor}
             />
-          ))}
+            {colors.map((color, index) => (
+              // <PaintCoat key={index} color={color} index={index} />
+              <Animated.View
+                key={index}
+                style={[
+                  styles.liquid,
+                  { backgroundColor: color, bottom: index * 25 },
+                ]}
+              />
+            ))}
+          </View>
         </Animated.View>
       </>
     );
@@ -184,12 +193,17 @@ const TestTube = forwardRef<View, TestTubeProps>(
 );
 
 const styles = StyleSheet.create({
+  innerAnimatedTubeWrap: {
+    width: "auto",
+    height: "100%",
+    position: "relative",
+  },
   tube: {
     width: 60,
     height: 150,
     borderWidth: 3,
     borderRadius: 10,
-    overflow: "hidden",
+    // overflow: "hidden",
     justifyContent: "flex-end",
     backgroundColor: "#eee",
     position: "relative",
@@ -199,6 +213,14 @@ const styles = StyleSheet.create({
     left: 1,
     width: 52,
     height: 25,
+  },
+  activeLiquid: {
+    borderColor: "green",
+    width: 5,
+    position: "absolute",
+    zIndex: 10,
+    top: 0,
+    right: 0,
   },
 });
 
