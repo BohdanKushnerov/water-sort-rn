@@ -6,6 +6,7 @@ import LevelCompletionModal from "@/components/LevelCompletionModal/LevelComplet
 import { getTubeCoordinates } from "./utils/getTubeCoordinates";
 import { getAmountToMove } from "./utils/getAmountToMove";
 import { canPourLiquid } from "./utils/canPourLiquid";
+import { countLastColors } from "./utils/countLastColors";
 
 export interface TubeCoordinates {
   x: number;
@@ -16,17 +17,23 @@ export interface TubeCoordinates {
   pageY: number;
 }
 
+interface PouringInfo {
+  pouringColor: string; // Цвет, который переливают
+  countPouringColors: number; // Количество цветов, которые будут переливаться
+  countColorsInSourceTube: number; // Количество цветов в пробирке, из которой льём
+  countColorsInTargetTube: number; // Количество цветов в целевой пробирке ДО переливания
+}
+
 const GameScreen = () => {
-  console.log("game screen =====");
   const [level, setLevel] = useState(0);
-  const [tubes, setTubes] = useState(levels[level]);
+  const [tubes, setTubes] = useState([...levels[level]]);
   const [currentTube, setCurrentTube] = useState<number | null>(null);
   const [pouringFromTube, setPouringFromTube] = useState<number | null>(null);
   const [pouringToTube, setPouringToTube] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedTubeCoordinates, setSelectedTubeCoordinates] =
     useState<TubeCoordinates | null>(null);
-  const [pouringColor, setPouringColor] = useState<string | null>(null);
+  const [pouringInfo, setPouringInfo] = useState<PouringInfo | null>(null);
 
   const tubeRefs = useRef<(View | null)[]>([]);
 
@@ -75,20 +82,37 @@ const GameScreen = () => {
       setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
       setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
 
-      const currentPouringColor = tubes[currentTube].findLast((el) => el);
-      setPouringColor(currentPouringColor ?? "transparent");
+      const currentPouringTube = tubes[currentTube];
+      const countPouringColors = countLastColors(currentPouringTube);
+
+      const currentPouringColor = currentPouringTube.findLast((el) => el);
+      // setPouringColor(currentPouringColor ?? "transparent");
+      setPouringInfo((prev) => {
+        if (!prev) {
+          return {
+            pouringColor: currentPouringColor ?? "transparent",
+            countPouringColors,
+            countColorsInSourceTube: currentPouringTube.length,
+            countColorsInTargetTube: toTube.length,
+          };
+        } else {
+          return null;
+        }
+      });
 
       setTimeout(() => {
         pourLiquid(currentTube, index, amountToMove, tubes);
         setPouringFromTube(null); // Сбрасываем анимацию после переливания
         setPouringToTube(null); // Сбрасываем анимацию после переливания
         setSelectedTubeCoordinates(null);
-      }, 1000); // Даем время на анимацию
+        setPouringInfo(null);
+      }, 1000); // Даем время на анимацию и чистим 
     }
 
     setCurrentTube(null);
   };
 
+  // checkLevelCompletion
   useEffect(() => {
     const checkLevelCompletion = (newTubes: string[][]) => {
       // Проверяем, завершен ли уровень (все пробирки заполнены правильными цветами)
@@ -128,6 +152,8 @@ const GameScreen = () => {
     }
   };
 
+  console.log('pouring info', pouringInfo)
+
   return (
     <>
       {showModal && (
@@ -146,7 +172,7 @@ const GameScreen = () => {
             pouringFromTube={pouringFromTube === index}
             pouringToTube={pouringToTube === index}
             selectedTubeCoordinates={selectedTubeCoordinates}
-            pouringColor={pouringColor}
+            pouringColor={pouringInfo?.pouringColor ?? "transparent"}
           />
         ))}
       </View>
