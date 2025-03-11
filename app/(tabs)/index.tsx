@@ -1,5 +1,5 @@
 import GameScreen from "@/screens/GameScreen/GameScreen";
-import React from "react";
+import React = require("react");
 
 export default function HomeScreen() {
   return <GameScreen />;

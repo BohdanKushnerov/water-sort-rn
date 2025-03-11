@@ -1,3 +1,4 @@
+import { LIQUID_HEIGHT_COLOR } from "@/constants/constants";
 import { TubeCoordinates } from "@/screens/GameScreen/GameScreen";
 import React, { FC, useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
@@ -7,12 +8,14 @@ interface ActivePouringLiquidProps {
   pouringFromTube: boolean;
   selectedTubeCoordinates: TubeCoordinates | null;
   pouringColor: string | null;
+  countColorsInTargetTube: number | null;
 }
 
 const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
   pouringFromTube,
   selectedTubeCoordinates,
   pouringColor,
+  countColorsInTargetTube,
 }) => {
   const heightActiveLiquidAnim = useRef(new Animated.Value(0)).current;
 
@@ -40,7 +43,10 @@ const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
 
   const heightActiveLiquid = heightActiveLiquidAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 150],
+    outputRange: [
+      0,
+      170 - LIQUID_HEIGHT_COLOR * (countColorsInTargetTube ?? 0),
+    ],
   });
 
   return (

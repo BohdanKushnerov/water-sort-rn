@@ -1,3 +1,4 @@
+import { LIQUID_HEIGHT_COLOR } from "@/constants/constants";
 import React, { FC, useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet } from "react-native";
 
@@ -7,7 +8,7 @@ interface PaintCoatProps {
 }
 
 const PaintCoat: FC<PaintCoatProps> = ({ color, index }) => {
-  const heightAnim = useRef(new Animated.Value(25)).current; // Начальная высота 25
+  const heightAnim = useRef(new Animated.Value(LIQUID_HEIGHT_COLOR)).current; // Начальная высота LIQUID_HEIGHT_COLOR
   const [isVisible, setIsVisible] = useState(true); // Состояние для видимости
 
   useEffect(() => {
@@ -35,7 +36,11 @@ const PaintCoat: FC<PaintCoatProps> = ({ color, index }) => {
     <Animated.View
       style={[
         styles.liquid,
-        { backgroundColor: color, bottom: index * 25, height: heightAnim },
+        {
+          backgroundColor: color,
+          bottom: index * LIQUID_HEIGHT_COLOR,
+          height: heightAnim,
+        },
       ]}
     />
   );
@@ -46,7 +51,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 1,
     width: 52,
-    height: 25,
+    height: LIQUID_HEIGHT_COLOR,
   },
 });
 

@@ -1,3 +1,5 @@
+export const LIQUID_HEIGHT_COLOR = 25;
+
 export const levels = [
   // Уровень 1 (Простой)
   [["red", "blue"], ["blue", "red"], []],

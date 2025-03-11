@@ -9,9 +9,9 @@ import {
 } from "react-native";
 import PaintCoat from "../PaintCoat/PaintCoat";
 import ActivePouringLiquid from "../ActivePouringLiquid/ActivePouringLiquid";
+import { LIQUID_HEIGHT_COLOR } from "@/constants/constants";
 
 interface TestTubeProps {
-  indexOfTube: number;
   colors: string[];
   onPress: () => void;
   isSelected: boolean;
@@ -19,12 +19,14 @@ interface TestTubeProps {
   pouringToTube: boolean;
   selectedTubeCoordinates: TubeCoordinates | null;
   pouringColor: string | null;
+  countPouringColors: number | null;
+  countColorsInSourceTube: number | null;
+  countColorsInTargetTube: number | null;
 }
 
 const TestTube = forwardRef<View, TestTubeProps>(
   (
     {
-      indexOfTube,
       colors,
       onPress,
       isSelected,
@@ -32,6 +34,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
       pouringToTube,
       selectedTubeCoordinates,
       pouringColor,
+      countColorsInTargetTube,
     },
     ref
   ) => {
@@ -88,7 +91,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
         console.log("backkkkkkkkkk");
         Animated.parallel([
           Animated.timing(translateX, {
-            toValue: 0, 
+            toValue: 0,
             duration: 500,
             useNativeDriver: true,
           }),
@@ -111,7 +114,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
 
     const borderColor = borderAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["black", "gold"],
+      outputRange: ["gray", "gold"],
     });
 
     const rotateInterpolate = rotateAnim.interpolate({
@@ -144,7 +147,10 @@ const TestTube = forwardRef<View, TestTubeProps>(
                 key={index}
                 style={[
                   styles.liquid,
-                  { backgroundColor: color, bottom: index * 25 },
+                  {
+                    backgroundColor: color,
+                    bottom: index * LIQUID_HEIGHT_COLOR,
+                  },
                 ]}
               />
             ))}
@@ -174,6 +180,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
               pouringFromTube={pouringFromTube}
               selectedTubeCoordinates={selectedTubeCoordinates}
               pouringColor={pouringColor}
+              countColorsInTargetTube={countColorsInTargetTube}
             />
             {colors.map((color, index) => (
               // <PaintCoat key={index} color={color} index={index} />
@@ -181,7 +188,10 @@ const TestTube = forwardRef<View, TestTubeProps>(
                 key={index}
                 style={[
                   styles.liquid,
-                  { backgroundColor: color, bottom: index * 25 },
+                  {
+                    backgroundColor: color,
+                    bottom: index * LIQUID_HEIGHT_COLOR,
+                  },
                 ]}
               />
             ))}
@@ -212,7 +222,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 1,
     width: 52,
-    height: 25,
+    height: LIQUID_HEIGHT_COLOR,
   },
   activeLiquid: {
     borderColor: "green",

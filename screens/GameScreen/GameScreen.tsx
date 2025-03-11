@@ -1,5 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Button, StyleSheet, View, Text, Alert } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Button,
+  StyleSheet,
+  View,
+  Text,
+  Alert,
+  ImageBackground,
+} from "react-native";
 import TestTube from "@/components/TestTube/TestTube";
 import { levels } from "@/constants/constants";
 import LevelCompletionModal from "@/components/LevelCompletionModal/LevelCompletionModal";
@@ -25,8 +32,10 @@ interface PouringInfo {
 }
 
 const GameScreen = () => {
+  const gameLevels: string[][][] = JSON.parse(JSON.stringify(levels));
+
   const [level, setLevel] = useState(0);
-  const [tubes, setTubes] = useState([...levels[level]]);
+  const [tubes, setTubes] = useState(gameLevels[level]);
   const [currentTube, setCurrentTube] = useState<number | null>(null);
   const [pouringFromTube, setPouringFromTube] = useState<number | null>(null);
   const [pouringToTube, setPouringToTube] = useState<number | null>(null);
@@ -106,7 +115,7 @@ const GameScreen = () => {
         setPouringToTube(null); // Сбрасываем анимацию после переливания
         setSelectedTubeCoordinates(null);
         setPouringInfo(null);
-      }, 1000); // Даем время на анимацию и чистим 
+      }, 1000); // Даем время на анимацию и чистим
     }
 
     setCurrentTube(null);
@@ -125,7 +134,7 @@ const GameScreen = () => {
 
       if (isLevelComplete) {
         setTimeout(() => {
-          if (level < levels.length - 1) {
+          if (level < gameLevels.length - 1) {
             setShowModal(true);
           } else {
             Alert.alert("Поздравляем! Вы прошли все уровни!");
@@ -137,25 +146,30 @@ const GameScreen = () => {
     checkLevelCompletion(tubes);
   }, [tubes]);
 
-  const resetGame = () => {
-    setTubes(levels[level]);
+  const resetGame = useCallback(() => {
+    const copyGameLevels = JSON.parse(JSON.stringify(levels));
+
+    setTubes(copyGameLevels[level]);
     setCurrentTube(null);
-  };
+  }, [level]);
 
   const handleNextLevel = () => {
     setShowModal(false);
     if (level < levels.length - 1) {
-      setLevel(level + 1); // Переход к следующему уровню
-      setTubes(levels[level + 1]); // Устанавливаем следующий уровень
+      setLevel((prev) => (prev += 1));
+      setTubes(gameLevels[level + 1]);
     } else {
       alert("Поздравляем! Вы прошли все уровни!");
     }
   };
 
-  console.log('pouring info', pouringInfo)
+  console.log("pouring info", pouringInfo);
 
   return (
-    <>
+    <ImageBackground
+      style={{ height: "100%", width: "auto" }}
+      source={require("../../assets/images/bg.jpg")}
+    >
       {showModal && (
         <LevelCompletionModal level={level} onNextLevel={handleNextLevel} />
       )}
@@ -163,7 +177,6 @@ const GameScreen = () => {
       <View style={styles.container}>
         {tubes.map((colors, index) => (
           <TestTube
-            indexOfTube={index}
             key={index}
             colors={colors}
             ref={(el) => (tubeRefs.current[index] = el)}
@@ -172,12 +185,19 @@ const GameScreen = () => {
             pouringFromTube={pouringFromTube === index}
             pouringToTube={pouringToTube === index}
             selectedTubeCoordinates={selectedTubeCoordinates}
-            pouringColor={pouringInfo?.pouringColor ?? "transparent"}
+            pouringColor={pouringInfo?.pouringColor ?? null}
+            countPouringColors={pouringInfo?.countPouringColors ?? null}
+            countColorsInSourceTube={
+              pouringInfo?.countColorsInSourceTube ?? null
+            }
+            countColorsInTargetTube={
+              pouringInfo?.countColorsInTargetTube ?? null
+            }
           />
         ))}
       </View>
-      <Button title="Reset" onPress={resetGame} />
-    </>
+      <Button title="Уровень с начала" onPress={resetGame} />
+    </ImageBackground>
   );
 };
 
@@ -194,6 +214,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: 20,
+    color: "white",
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 10,
