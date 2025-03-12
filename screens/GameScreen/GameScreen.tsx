@@ -34,15 +34,15 @@ interface PouringInfo {
 const GameScreen = () => {
   const gameLevels: string[][][] = JSON.parse(JSON.stringify(levels));
 
-  const [level, setLevel] = useState(0);
+  const [level, setLevel] = useState(5);
   const [tubes, setTubes] = useState(gameLevels[level]);
   const [currentTube, setCurrentTube] = useState<number | null>(null);
   const [pouringFromTube, setPouringFromTube] = useState<number | null>(null);
   const [pouringToTube, setPouringToTube] = useState<number | null>(null);
-  const [showModal, setShowModal] = useState(false);
   const [selectedTubeCoordinates, setSelectedTubeCoordinates] =
-    useState<TubeCoordinates | null>(null);
+  useState<TubeCoordinates | null>(null);
   const [pouringInfo, setPouringInfo] = useState<PouringInfo | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const tubeRefs = useRef<(View | null)[]>([]);
 

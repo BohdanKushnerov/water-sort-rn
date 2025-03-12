@@ -35,11 +35,18 @@ const TestTube = forwardRef<View, TestTubeProps>(
       selectedTubeCoordinates,
       pouringColor,
       countColorsInTargetTube,
+      countPouringColors,
+      countColorsInSourceTube,
     },
     ref
   ) => {
+    const heightOfPouredLayers = colors.length * 25;
+    const percentagePoured = heightOfPouredLayers / 150;
+    const angle = (1 - percentagePoured) * 90;
+
     const [isVisible, setIsVisible] = useState(true);
     const [tubeCoordinates, setTubeCoordinates] = useState({ x: 0, y: 0 });
+    // const [tubeOnPouringPosition, setTubeOnPouringPosition] = useState(false);
 
     const translateX = useRef(new Animated.Value(0)).current;
     const translateY = useRef(new Animated.Value(0)).current;
@@ -56,6 +63,22 @@ const TestTube = forwardRef<View, TestTubeProps>(
       }).start();
     }, [isSelected]);
 
+    // useEffect(() => {
+    //   if (tubeOnPouringPosition) {
+    //     Animated.timing(rotateAnim, {
+    //       toValue: 1,
+    //       duration: 500,
+    //       useNativeDriver: true,
+    //     }).start(() => {
+    //       Animated.timing(rotateAnim, {
+    //         toValue: 0,
+    //         duration: 500,
+    //         useNativeDriver: true,
+    //       }).start(); // You need to call .start() for the second animation
+    //     });
+    //   }
+    // }, [tubeOnPouringPosition]);
+
     useEffect(() => {
       if (pouringFromTube && selectedTubeCoordinates) {
         startAnimationTranslateTube.current = true;
@@ -64,7 +87,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
         // Анимация перемещения вперед
         Animated.parallel([
           Animated.timing(translateX, {
-            toValue: selectedTubeCoordinates.pageX - tubeCoordinates.x - 60,
+            toValue: selectedTubeCoordinates.pageX - tubeCoordinates.x - 68,
             duration: 500,
             useNativeDriver: true,
           }),
@@ -78,17 +101,19 @@ const TestTube = forwardRef<View, TestTubeProps>(
             duration: 500,
             useNativeDriver: true,
           }),
-        ]).start();
+        ]).start(() => {
+          // setTubeOnPouringPosition(true);
+        });
       }
     }, [pouringFromTube, selectedTubeCoordinates]);
 
+    // translate back tube
     useEffect(() => {
       if (
         !pouringFromTube &&
         !selectedTubeCoordinates &&
         startAnimationTranslateTube.current
       ) {
-        console.log("backkkkkkkkkk");
         Animated.parallel([
           Animated.timing(translateX, {
             toValue: 0,
@@ -119,7 +144,8 @@ const TestTube = forwardRef<View, TestTubeProps>(
 
     const rotateInterpolate = rotateAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["0deg", "45deg"],
+      // outputRange: ["0deg", `${angle}deg`],
+      outputRange: ["0deg", '45deg'],
     });
 
     const onLayout = (event: LayoutChangeEvent) => {
@@ -139,7 +165,10 @@ const TestTube = forwardRef<View, TestTubeProps>(
           <Animated.View
             style={[
               styles.tube,
-              { borderColor, opacity: isVisible ? 1 : 0 }, // Ховаємо лише візуально
+              {
+                borderColor,
+                opacity: isVisible ? 1 : 0,
+              },
             ]}
           >
             {colors.map((color, index) => (
@@ -150,6 +179,8 @@ const TestTube = forwardRef<View, TestTubeProps>(
                   {
                     backgroundColor: color,
                     bottom: index * LIQUID_HEIGHT_COLOR,
+                    borderBottomLeftRadius: index === 0 ? 30 : 0,
+                    borderBottomRightRadius: index === 0 ? 30 : 0,
                   },
                 ]}
               />
@@ -165,6 +196,9 @@ const TestTube = forwardRef<View, TestTubeProps>(
             {
               position: "absolute",
               zIndex: isVisible ? 0 : 20,
+              opacity: isVisible ? 0 : 1,
+              borderBottomLeftRadius: 30,
+              borderBottomRightRadius: 30,
               left: tubeCoordinates.x,
               top: tubeCoordinates.y,
               transform: [
@@ -177,6 +211,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
         >
           <View style={[styles.innerAnimatedTubeWrap]}>
             <ActivePouringLiquid
+              // angle={angle}
               pouringFromTube={pouringFromTube}
               selectedTubeCoordinates={selectedTubeCoordinates}
               pouringColor={pouringColor}
@@ -191,6 +226,8 @@ const TestTube = forwardRef<View, TestTubeProps>(
                   {
                     backgroundColor: color,
                     bottom: index * LIQUID_HEIGHT_COLOR,
+                    borderBottomLeftRadius: index === 0 ? 30 : 0,
+                    borderBottomRightRadius: index === 0 ? 30 : 0,
                   },
                 ]}
               />
@@ -212,7 +249,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 150,
     borderWidth: 3,
-    borderRadius: 10,
+    // borderRadius: 10,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    // overflow: "hidden",
+    borderTopWidth: 0,
     // overflow: "hidden",
     justifyContent: "flex-end",
     backgroundColor: "#eee",
