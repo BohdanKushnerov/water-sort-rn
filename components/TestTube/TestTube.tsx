@@ -12,7 +12,8 @@ import ActivePouringLiquid from "../ActivePouringLiquid/ActivePouringLiquid";
 import { LIQUID_HEIGHT_COLOR } from "@/constants/constants";
 
 interface TestTubeProps {
-  colors: string[];
+  indexOfTube: number;
+  colors: string;
   onPress: () => void;
   isSelected: boolean;
   pouringFromTube: boolean;
@@ -27,6 +28,7 @@ interface TestTubeProps {
 const TestTube = forwardRef<View, TestTubeProps>(
   (
     {
+      indexOfTube,
       colors,
       onPress,
       isSelected,
@@ -40,7 +42,9 @@ const TestTube = forwardRef<View, TestTubeProps>(
     },
     ref
   ) => {
-    const heightOfPouredLayers = colors.length * 25;
+    console.log("indexOfTube", indexOfTube);
+    
+    const heightOfPouredLayers = colors.split(", ").length * 25;
     const percentagePoured = heightOfPouredLayers / 150;
     const angle = (1 - percentagePoured) * 90;
 
@@ -145,7 +149,7 @@ const TestTube = forwardRef<View, TestTubeProps>(
     const rotateInterpolate = rotateAnim.interpolate({
       inputRange: [0, 1],
       // outputRange: ["0deg", `${angle}deg`],
-      outputRange: ["0deg", '45deg'],
+      outputRange: ["0deg", "45deg"],
     });
 
     const onLayout = (event: LayoutChangeEvent) => {
@@ -171,13 +175,13 @@ const TestTube = forwardRef<View, TestTubeProps>(
               },
             ]}
           >
-            {colors.map((color, index) => (
+            {colors.split(", ").map((color, index) => (
               <Animated.View
                 key={index}
                 style={[
                   styles.liquid,
                   {
-                    backgroundColor: color,
+                    backgroundColor: color ? color : "transparent",
                     bottom: index * LIQUID_HEIGHT_COLOR,
                     borderBottomLeftRadius: index === 0 ? 30 : 0,
                     borderBottomRightRadius: index === 0 ? 30 : 0,
@@ -217,14 +221,14 @@ const TestTube = forwardRef<View, TestTubeProps>(
               pouringColor={pouringColor}
               countColorsInTargetTube={countColorsInTargetTube}
             />
-            {colors.map((color, index) => (
+            {colors.split(", ").map((color, index) => (
               // <PaintCoat key={index} color={color} index={index} />
               <Animated.View
                 key={index}
                 style={[
                   styles.liquid,
                   {
-                    backgroundColor: color,
+                    backgroundColor: color ? color : "transparent",
                     bottom: index * LIQUID_HEIGHT_COLOR,
                     borderBottomLeftRadius: index === 0 ? 30 : 0,
                     borderBottomRightRadius: index === 0 ? 30 : 0,

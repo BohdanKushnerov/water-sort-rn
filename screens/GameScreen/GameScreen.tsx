@@ -32,15 +32,15 @@ interface PouringInfo {
 }
 
 const GameScreen = () => {
-  const gameLevels: string[][][] = JSON.parse(JSON.stringify(levels));
+  const gameLevels: string[][] = JSON.parse(JSON.stringify(levels));
 
-  const [level, setLevel] = useState(5);
+  const [level, setLevel] = useState(0);
   const [tubes, setTubes] = useState(gameLevels[level]);
   const [currentTube, setCurrentTube] = useState<number | null>(null);
   const [pouringFromTube, setPouringFromTube] = useState<number | null>(null);
   const [pouringToTube, setPouringToTube] = useState<number | null>(null);
   const [selectedTubeCoordinates, setSelectedTubeCoordinates] =
-  useState<TubeCoordinates | null>(null);
+    useState<TubeCoordinates | null>(null);
   const [pouringInfo, setPouringInfo] = useState<PouringInfo | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -50,40 +50,65 @@ const GameScreen = () => {
     from: number,
     to: number,
     amountToMove: number,
-    tubes: string[][]
+    tubes: string[]
   ) => {
-    if (from === to || tubes[from].length === 0 || tubes[to].length === 6)
+    console.log("ggggggggggggg");
+    console.log("from === to", from === to);
+    console.log("tubes[from].length === 0", tubes[from].length === 0);
+    console.log("tubes[to].length === 6", tubes[to].length === 6);
+    console.log("=====================");
+    console.log("tubes", tubes);
+    console.log("tubes[from]", tubes[from]);
+    console.log("tubes[to]", tubes[to]);
+    if (
+      from === to ||
+      tubes[from].split(", ").length === 0 ||
+      tubes[to].split(", ").length === 6
+    ) {
       return;
+    }
+    console.log("wwwwwwwww");
 
     const newTubes = [...tubes];
-    const fromTube = newTubes[from];
-    const toTube = newTubes[to];
+    const fromTube = newTubes[from].split(", ").filter(Boolean);
+    const toTube = newTubes[to].split(", ").filter(Boolean);
 
     // Переливаем жидкость
     for (let i = 0; i < amountToMove; i++) {
+      if (fromTube.length === 0) break; // Если в пробирке ничего не осталось, выходим
       const currentPouringColor = fromTube.pop()!;
 
+      console.log("currentPouringColor", currentPouringColor);
+
+      // Добавляем цвет в целевую пробирку
       toTube.push(currentPouringColor);
     }
+
+    // Записываем обновлённые пробирки обратно
+    newTubes[from] = fromTube.join(", ");
+    newTubes[to] = toTube.join(", ");
+
+    console.log("newTubes", newTubes);
 
     setTubes(newTubes);
   };
 
-  const handleTubePress = (index: number) => {
+  const handleTubePress = useCallback((index: number) => {
     if (currentTube === null) {
       setCurrentTube(index);
       return;
     }
 
     const newTubes = [...tubes];
-    const fromTube = newTubes[currentTube];
-    const toTube = newTubes[index];
+    const fromTube = newTubes[currentTube].split(", ");
+    const toTube = newTubes[index].split(", ");
 
     const amountToMove = getAmountToMove(fromTube);
 
     if (
       currentTube !== index &&
-      canPourLiquid(fromTube, toTube, amountToMove)
+      true
+      // canPourLiquid(fromTube, toTube, amountToMove)
     ) {
       // Получаем координаты при нажатии
       getTubeCoordinates(index, tubeRefs, setSelectedTubeCoordinates);
@@ -91,7 +116,7 @@ const GameScreen = () => {
       setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
       setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
 
-      const currentPouringTube = tubes[currentTube];
+      const currentPouringTube = tubes[currentTube].split(", ");
       const countPouringColors = countLastColors(currentPouringTube);
 
       const currentPouringColor = currentPouringTube.findLast((el) => el);
@@ -119,16 +144,17 @@ const GameScreen = () => {
     }
 
     setCurrentTube(null);
-  };
+  }, []);
 
   // checkLevelCompletion
   useEffect(() => {
-    const checkLevelCompletion = (newTubes: string[][]) => {
+    const checkLevelCompletion = (newTubes: string[]) => {
       // Проверяем, завершен ли уровень (все пробирки заполнены правильными цветами)
       const isLevelComplete = newTubes.every((tube) => {
         return (
-          tube.length === 0 || // Пустые пробирки игнорируем
-          (tube.length > 1 && tube.every((color) => color === tube[0])) // Все цвета одинаковые и их больше 1
+          tube.length === 0 || // Игнорируем пустые пробирки
+          (tube.includes(",") && // Должно быть минимум 2 цвета
+            tube.split(", ").every((color, _, arr) => color === arr[0])) // Все цвета одинаковые
         );
       });
 
@@ -163,8 +189,6 @@ const GameScreen = () => {
     }
   };
 
-  console.log("pouring info", pouringInfo);
-
   return (
     <ImageBackground
       style={{ height: "100%", width: "auto" }}
@@ -178,6 +202,7 @@ const GameScreen = () => {
         {tubes.map((colors, index) => (
           <TestTube
             key={index}
+            indexOfTube={index}
             colors={colors}
             ref={(el) => (tubeRefs.current[index] = el)}
             onPress={() => handleTubePress(index)}
