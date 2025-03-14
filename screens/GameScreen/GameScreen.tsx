@@ -46,115 +46,99 @@ const GameScreen = () => {
 
   const tubeRefs = useRef<(View | null)[]>([]);
 
-  const pourLiquid = (
-    from: number,
-    to: number,
-    amountToMove: number,
-    tubes: string[]
-  ) => {
-    console.log("ggggggggggggg");
-    console.log("from === to", from === to);
-    console.log("tubes[from].length === 0", tubes[from].length === 0);
-    console.log("tubes[to].length === 6", tubes[to].length === 6);
-    console.log("=====================");
-    console.log("tubes", tubes);
-    console.log("tubes[from]", tubes[from]);
-    console.log("tubes[to]", tubes[to]);
-    if (
-      from === to ||
-      tubes[from].split(", ").length === 0 ||
-      tubes[to].split(", ").length === 6
-    ) {
-      return;
-    }
-    console.log("wwwwwwwww");
+  const handleTubePress = useCallback(
+    (index: number, tubes: string[], currentTube: number | null) => () => {
+      if (currentTube === null) {
+        setCurrentTube(index);
+        return;
+      }
 
-    const newTubes = [...tubes];
-    const fromTube = newTubes[from].split(", ").filter(Boolean);
-    const toTube = newTubes[to].split(", ").filter(Boolean);
+      const fromTube = tubes[currentTube].split(", ");
+      const toTube = tubes[index].split(", ");
 
-    // Переливаем жидкость
-    for (let i = 0; i < amountToMove; i++) {
-      if (fromTube.length === 0) break; // Если в пробирке ничего не осталось, выходим
-      const currentPouringColor = fromTube.pop()!;
+      const amountToMove = getAmountToMove(fromTube);
 
-      console.log("currentPouringColor", currentPouringColor);
+      if (
+        currentTube !== index &&
+        canPourLiquid(fromTube, toTube, amountToMove)
+      ) {
+        const pourLiquid = (
+          from: number,
+          to: number,
+          amountToMove: number,
+          tubes: string[]
+        ) => {
+          if (
+            from === to ||
+            tubes[from].split(", ").length === 0 ||
+            tubes[to].split(", ").length === 6
+          ) {
+            return;
+          }
 
-      // Добавляем цвет в целевую пробирку
-      toTube.push(currentPouringColor);
-    }
+          const newTubes = [...tubes];
+          const fromTube = newTubes[from].split(", ").filter(Boolean);
+          const toTube = newTubes[to].split(", ").filter(Boolean);
 
-    // Записываем обновлённые пробирки обратно
-    newTubes[from] = fromTube.join(", ");
-    newTubes[to] = toTube.join(", ");
+          // Переливаем жидкость
+          for (let i = 0; i < amountToMove; i++) {
+            if (fromTube.length === 0) break; // Если в пробирке ничего не осталось, выходим
+            const currentPouringColor = fromTube.pop()!;
 
-    console.log("newTubes", newTubes);
+            // Добавляем цвет в целевую пробирку
+            toTube.push(currentPouringColor);
+          }
 
-    setTubes(newTubes);
-  };
+          // Записываем обновлённые пробирки обратно
+          newTubes[from] = fromTube.join(", ");
+          newTubes[to] = toTube.join(", ");
 
-  const handleTubePress = useCallback((index: number) => {
-    if (currentTube === null) {
-      setCurrentTube(index);
-      return;
-    }
+          setTubes(newTubes);
+        };
+        // Получаем координаты при нажатии
+        getTubeCoordinates(index, tubeRefs, setSelectedTubeCoordinates);
 
-    const newTubes = [...tubes];
-    const fromTube = newTubes[currentTube].split(", ");
-    const toTube = newTubes[index].split(", ");
+        setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
+        setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
 
-    const amountToMove = getAmountToMove(fromTube);
+        const currentPouringTube = tubes[currentTube].split(", ");
+        const countPouringColors = countLastColors(currentPouringTube);
+        const currentPouringColor = currentPouringTube.findLast((el) => el);
 
-    if (
-      currentTube !== index &&
-      true
-      // canPourLiquid(fromTube, toTube, amountToMove)
-    ) {
-      // Получаем координаты при нажатии
-      getTubeCoordinates(index, tubeRefs, setSelectedTubeCoordinates);
+        setPouringInfo((prev) =>
+          prev
+            ? null
+            : {
+                pouringColor: currentPouringColor ?? "transparent",
+                countPouringColors,
+                countColorsInSourceTube: currentPouringTube.length,
+                countColorsInTargetTube: toTube[0] === "" ? 0 : toTube.length,
+              }
+        );
 
-      setPouringFromTube(currentTube); // Запускаем анимацию для пробирки-донора
-      setPouringToTube(index); // Запускаем анимацию для пробирки-рецепиента
+        setTimeout(() => {
+          pourLiquid(currentTube, index, amountToMove, tubes);
+          setPouringFromTube(null);
+          setPouringToTube(null);
+          setSelectedTubeCoordinates(null);
+          setPouringInfo(null);
+        }, 1000);
+      }
 
-      const currentPouringTube = tubes[currentTube].split(", ");
-      const countPouringColors = countLastColors(currentPouringTube);
-
-      const currentPouringColor = currentPouringTube.findLast((el) => el);
-      // setPouringColor(currentPouringColor ?? "transparent");
-      setPouringInfo((prev) => {
-        if (!prev) {
-          return {
-            pouringColor: currentPouringColor ?? "transparent",
-            countPouringColors,
-            countColorsInSourceTube: currentPouringTube.length,
-            countColorsInTargetTube: toTube.length,
-          };
-        } else {
-          return null;
-        }
-      });
-
-      setTimeout(() => {
-        pourLiquid(currentTube, index, amountToMove, tubes);
-        setPouringFromTube(null); // Сбрасываем анимацию после переливания
-        setPouringToTube(null); // Сбрасываем анимацию после переливания
-        setSelectedTubeCoordinates(null);
-        setPouringInfo(null);
-      }, 1000); // Даем время на анимацию и чистим
-    }
-
-    setCurrentTube(null);
-  }, []);
+      setCurrentTube(null);
+    },
+    []
+  );
 
   // checkLevelCompletion
   useEffect(() => {
     const checkLevelCompletion = (newTubes: string[]) => {
       // Проверяем, завершен ли уровень (все пробирки заполнены правильными цветами)
       const isLevelComplete = newTubes.every((tube) => {
+        const colors = tube.split(", ").filter(Boolean); // Разделяем цвета и убираем пустые
         return (
-          tube.length === 0 || // Игнорируем пустые пробирки
-          (tube.includes(",") && // Должно быть минимум 2 цвета
-            tube.split(", ").every((color, _, arr) => color === arr[0])) // Все цвета одинаковые
+          colors.length === 0 || // Игнорируем пустые пробирки
+          (colors.length >= 4 && colors.every((color) => color === colors[0])) // Минимум 4 одинаковых цвета
         );
       });
 
@@ -189,6 +173,18 @@ const GameScreen = () => {
     }
   };
 
+  // const setTubeRef = useCallback(
+  //   (index: number) => (el: View | null) => {
+  //     tubeRefs.current[index] = el;
+  //   },
+  //   []
+  // );
+  const setTubeRef = (index: number) => (el: View | null) => {
+    tubeRefs.current[index] = el;
+  };
+
+  // console.log("============", pouringInfo);
+
   return (
     <ImageBackground
       style={{ height: "100%", width: "auto" }}
@@ -201,15 +197,20 @@ const GameScreen = () => {
       <View style={styles.container}>
         {tubes.map((colors, index) => (
           <TestTube
-            key={index}
             indexOfTube={index}
+            key={index}
             colors={colors}
-            ref={(el) => (tubeRefs.current[index] = el)}
-            onPress={() => handleTubePress(index)}
+            ref={setTubeRef(index)}
+            // onPress={() => handleTubePress(index)}
+            handleTubePress={handleTubePress(index, tubes, currentTube)}
             isSelected={currentTube === index}
             pouringFromTube={pouringFromTube === index}
             pouringToTube={pouringToTube === index}
-            selectedTubeCoordinates={selectedTubeCoordinates}
+            selectedTubeCoordinates={
+              pouringFromTube === index && selectedTubeCoordinates
+                ? selectedTubeCoordinates
+                : null
+            }
             pouringColor={pouringInfo?.pouringColor ?? null}
             countPouringColors={pouringInfo?.countPouringColors ?? null}
             countColorsInSourceTube={

@@ -5,7 +5,7 @@ import { StyleSheet } from "react-native";
 import { Animated } from "react-native";
 
 interface ActivePouringLiquidProps {
-  // angle: number;
+  angle: number;
   pouringFromTube: boolean;
   selectedTubeCoordinates: TubeCoordinates | null;
   pouringColor: string | null;
@@ -13,7 +13,7 @@ interface ActivePouringLiquidProps {
 }
 
 const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
-  // angle,
+  angle,
   pouringFromTube,
   selectedTubeCoordinates,
   pouringColor,
@@ -27,8 +27,7 @@ const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
       Animated.timing(heightActiveLiquidAnim, {
         toValue: 1,
         duration: 300,
-        delay: 300,
-
+        delay: 600,
         useNativeDriver: false,
       }).start();
     }
@@ -36,7 +35,7 @@ const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
     if (!pouringFromTube && !selectedTubeCoordinates) {
       Animated.timing(heightActiveLiquidAnim, {
         toValue: 0,
-        duration: 50,
+        duration: 100,
         delay: 0,
         useNativeDriver: false,
       }).start();
@@ -47,7 +46,8 @@ const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
     inputRange: [0, 1],
     outputRange: [
       0,
-      173 - LIQUID_HEIGHT_COLOR * (countColorsInTargetTube ?? 0),
+      // 173 - LIQUID_HEIGHT_COLOR * (countColorsInTargetTube ?? 0),
+      100,
     ],
   });
 
@@ -59,7 +59,7 @@ const ActivePouringLiquid: FC<ActivePouringLiquidProps> = ({
           backgroundColor: pouringColor ? pouringColor : "",
           height: heightActiveLiquid,
           transformOrigin: "top right",
-          transform: [{ rotate: "-45deg" }],
+          transform: [{ rotate: `-${angle}deg` }],
         },
       ]}
     />
